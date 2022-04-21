@@ -49,35 +49,32 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public double getAverageAgeForUsers(final List<User> users) {
-//
+
         return users.stream()
-                .collect(Collectors.averagingInt(User::getAge));
+                .mapToDouble(User::getAge)
+                .average().orElse(-1.0);
+
     }
 
     @Override
     public Optional<String> getMostFrequentLastName(final List<User> users) {
-        Map<String, Long> map =
+        return
                 users.stream()
-                        .collect(Collectors.groupingBy(
-                                User::getLastName,
-                                Collectors.counting()
-
-                        ));
-        System.out.println("test-1" + map);
-
-        return Optional.of( // of - if there is an object null will throw exception
-                map.entrySet() //return object map
+                        .collect(Collectors.groupingBy(User::getLastName, Collectors.counting()))
+                        .entrySet()
                         .stream()
-                        .max((e1, e2) -> e1.getValue() < e2.getValue() ? -1 :1)
-                        .get()
-                        .getKey()
-
-        );
+                        .filter(entry -> entry.getValue() >= 2)
+                        .reduce((e1, e2) ->
+                                e1.getValue() < e2.getValue() ? e2 :
+                                        e1.getValue() > e2.getValue() ? e1 :
+                                                new AbstractMap.SimpleEntry<>(null, e1.getValue()))
+                        .map(Map.Entry::getKey);
         ///???
     }
 
+    @SafeVarargs
     @Override
-    public List<User> filterBy(final List<User> users, final Predicate<User>... predicates) {
+    public final List<User> filterBy(final List<User> users, final Predicate<User>... predicates) {
         Predicate<User> allPredicates = Arrays.stream(predicates) //get array with all predicates
                 .reduce(w -> true, Predicate::and);//get predicates with true
 
